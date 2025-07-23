@@ -2,4 +2,6 @@ __pycache__/
 *.pyc
 .env
 *.log
-data/*.csv
+tweet_streamer/data/twcs.csv
+tweet_consumer/output/*.csv
+

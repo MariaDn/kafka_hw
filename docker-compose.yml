@@ -39,7 +39,8 @@ services:
       --partitions 3 --replication-factor 1"
 
   tweet-streamer:
-    build: .
+    build:
+      context: ./tweet_streamer
     container_name: tweet-streamer
     depends_on:
       - kafka
@@ -47,6 +48,14 @@ services:
     env_file:
       - .env
     volumes:
-      - ./data:/app/data
-    networks:
-      - default   
+      - ./tweet_streamer/data:/app/data
+
+  tweet-consumer:
+    build:
+      context: ./tweet_consumer
+    container_name: tweet-consumer
+    depends_on:
+      - kafka
+      - init-topics
+    volumes:
+      - ./tweet_consumer/output:/app/output  
