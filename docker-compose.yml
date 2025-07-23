@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+
+  init-topics:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: init-topics
+    depends_on:
+      - kafka
+    command: >
+      bash -c "until kafka-topics --bootstrap-server kafka:9092 --list > /dev/null 2>&1;
+      do echo 'Waiting for Kafka...'; sleep 2; done;
+      echo 'Kafka is ready. Creating topic...';
+      kafka-topics --bootstrap-server kafka:9092
+      --create --if-not-exists --topic tweets
+      --partitions 3 --replication-factor 1"
+
+  tweet-streamer:
+    build: .
+    container_name: tweet-streamer
+    depends_on:
+      - kafka
+      - init-topics
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    networks:
+      - default   
